@@ -3,338 +3,552 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>玄学 - 每日运势 & 紫微排盘 (v10.3 本地版)</title>
-    
-    <script src="https://npm.elemecdn.com/tailwindcss@3.3.3/lib/index.min.js"></script>
-    
+    <title>玄学 - 个人运势中心 (v11.0)</title>
+
+    <!-- 正确的 Tailwind 浏览器 CDN（替换掉原来的 npm.elemecdn 写法） -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 本地核心库 + CDN 兜底 -->
     <script src="./lunar.js"></script>
-    <script>if(typeof Lunar==='undefined'){document.write('<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.min.js"><\/script>')}</script>
+    <script>
+        if (typeof Lunar === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.min.js"><\/script>');
+        }
+    </script>
 
     <script src="./iztro.min.js"></script>
-    <script>if(typeof iztro==='undefined'){document.write('<script src="https://npm.elemecdn.com/iztro@2.6.3/dist/iztro.min.js"><\/script>')}</script>
+    <script>
+        if (typeof iztro === 'undefined') {
+            document.write('<script src="https://npm.elemecdn.com/iztro@2.6.3/dist/iztro.min.js"><\/script>');
+        }
+    </script>
 
     <style>
-        body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
-        select { -webkit-appearance: none; background-color: #fff; background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; }
-        .tab-active { background-color: #4f46e5; color: white; font-weight: bold; }
-        .tab-inactive { background-color: #eef2ff; color: #6366f1; }
-        .gua-line { height: 6px; margin-bottom: 4px; border-radius: 2px; }
-        .gua-yang { background-color: #334155; width: 100%; }
-        .gua-yin { display: flex; justify-content: space-between; width: 100%; }
-        .gua-yin span { background-color: #334155; width: 42%; height: 100%; border-radius: 2px; }
-        .fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top, #e5e7eb 0, #f3f4f6 40%, #e5e7eb 100%);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 淡入动画 */
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Tab 选中状态 */
+        .tab-btn {
+            transition: all 0.25s;
+            border-bottom: 2px solid transparent;
+            opacity: 0.6;
+        }
+        .tab-btn.active {
+            color: #4f46e5;
+            border-bottom-color: #4f46e5;
+            opacity: 1;
+            font-weight: 600;
+            background-color: #eef2ff;
+        }
+
+        /* 下拉框美化 */
+        select {
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.2em 1.2em;
+            padding-right: 2rem;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center pb-10">
 
-    <div class="sticky top-0 z-50 w-full max-w-md bg-white/90 backdrop-blur shadow-sm p-2 flex gap-3 border-b border-slate-100">
-        <button onclick="switchTab('daily')" id="tab-daily" class="flex-1 py-2.5 rounded-xl text-sm transition-all tab-active">
-            📅 今日易经
-        </button>
-        <button onclick="switchTab('ziwei')" id="tab-ziwei" class="flex-1 py-2.5 rounded-xl text-sm transition-all tab-inactive">
-            🔮 紫微流月
-        </button>
+    <!-- 顶部 Tab 导航 -->
+    <div class="sticky top-0 z-50 w-full bg-white/90 backdrop-blur shadow-sm">
+        <div class="max-w-md mx-auto flex text-center">
+            <div onclick="switchTab('daily')" id="btn-daily"
+                 class="tab-btn active flex-1 py-3 cursor-pointer text-sm">
+                🗓️ 今日运势
+            </div>
+            <div onclick="switchTab('ziwei')" id="btn-ziwei"
+                 class="tab-btn flex-1 py-3 cursor-pointer text-sm">
+                🔮 紫微流月
+            </div>
+        </div>
     </div>
 
     <div class="w-full max-w-md px-4 py-4 space-y-4">
 
+        <!-- 个人信息卡片 -->
+        <div class="bg-white rounded-2xl shadow-md shadow-indigo-50 p-5 border border-indigo-50">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-bold text-slate-700 border-l-4 border-indigo-500 pl-2">
+                    个人信息 (八字 / 紫微基础)
+                </h2>
+                <button onclick="calculateAll()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg active:scale-95 transition shadow-md shadow-indigo-200">
+                    🔄 重新测算
+                </button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-3">
+                <div class="col-span-1">
+                    <select id="selYear"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </select>
+                </div>
+                <div class="col-span-1">
+                    <select id="selMonth"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </select>
+                </div>
+                <div class="col-span-1">
+                    <select id="selDay"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <input type="time" id="birthTime" value="12:00"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                <select id="gender"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="女">女</option>
+                    <option value="男">男</option>
+                </select>
+            </div>
+
+            <input type="text" id="location" placeholder="出生地 (如: 海南)"
+                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- 今日运势视图 -->
         <div id="view-daily" class="fade-in space-y-4">
-            <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
-                <div class="absolute right-0 top-0 w-24 h-24 bg-white/5 rounded-full blur-xl -mr-8 -mt-8"></div>
-                <div class="flex justify-between items-center">
+
+            <!-- 顶部运势卡片 -->
+            <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-5 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-12 -mt-16"></div>
+                <div class="flex justify-between items-start relative z-10">
                     <div>
-                        <div class="text-3xl font-bold" id="dailyDate">--</div>
-                        <div class="text-sm text-slate-300 mt-1" id="dailyLunar">正在加载本地库...</div>
+                        <div class="text-3xl font-bold tracking-tight" id="dailyDate">--</div>
+                        <div class="text-sm text-slate-300 mt-1" id="dailyLunar">正在加载...</div>
                     </div>
                     <div class="text-right">
                         <div class="text-xl font-bold text-amber-400" id="dailyGanzhi">--</div>
-                        <div class="text-xs text-slate-400 border border-slate-600 rounded px-1.5 py-0.5 mt-1 inline-block" id="dailyNayin">--</div>
+                        <div class="text-[10px] border border-slate-500/70 px-1.5 rounded mt-1 inline-block text-slate-300"
+                             id="dailyNayin">--</div>
                     </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-white/10 flex justify-between items-center relative z-10">
+                    <span class="text-xs text-slate-400">你的八字日主</span>
+                    <span class="text-sm font-bold bg-white/15 px-2 py-0.5 rounded backdrop-blur"
+                          id="userDayMaster">计算中...</span>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-slate-800 flex items-center"><span class="text-xl mr-2">☯️</span> 值日卦象</h3>
-                    <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">周易六十四卦</span>
-                </div>
-                <div class="flex gap-5 items-center bg-slate-50 rounded-xl p-4">
-                    <div id="gua-lines" class="w-12 flex flex-col-reverse shrink-0"></div>
-                    <div>
-                        <div class="text-lg font-bold text-slate-800 mb-1" id="gua-name">--</div>
-                        <div class="text-sm text-slate-600 leading-relaxed" id="gua-desc">--</div>
-                    </div>
-                </div>
-            </div>
-
+            <!-- 幸运色 / 开运物 -->
             <div class="grid grid-cols-2 gap-3">
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-                    <div class="text-xs text-slate-400 font-bold mb-2 uppercase tracking-wider">幸运色 & 穿搭</div>
-                    <div class="flex items-center gap-3">
-                        <div id="lucky-color-dot" class="w-8 h-8 rounded-full shadow-inner border-2 border-white ring-1 ring-slate-100"></div>
-                        <div class="font-bold text-slate-700" id="lucky-color-text">--</div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
+                    <div class="text-xs text-slate-400 font-bold mb-2 uppercase tracking-wide">
+                        今日幸运色
                     </div>
+                    <div id="luckyColorDot"
+                         class="w-12 h-12 rounded-full shadow-inner border-4 border-white ring-1 ring-slate-200 bg-slate-200 mb-1"></div>
+                    <div class="font-bold text-slate-700" id="luckyColorText">--</div>
                 </div>
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-                    <div class="text-xs text-slate-400 font-bold mb-2 uppercase tracking-wider">开运小物</div>
-                    <div class="text-2xl mb-1" id="lucky-item-icon">📿</div>
-                    <div class="text-sm font-bold text-slate-700" id="lucky-item-text">--</div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
+                    <div class="text-xs text-slate-400 font-bold mb-2 uppercase tracking-wide">
+                        开运小物
+                    </div>
+                    <div class="text-3xl mb-1" id="luckyItemIcon">❓</div>
+                    <div class="font-bold text-slate-700" id="luckyItemText">--</div>
                 </div>
             </div>
 
+            <!-- 黄历宜忌 -->
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                <h3 class="font-bold text-slate-800 mb-3">📜 老黄历宜忌</h3>
-                <div class="space-y-2">
+                <h3 class="font-bold text-slate-800 mb-3 flex items-center">
+                    <span class="mr-2">📜</span> 老黄历宜忌
+                </h3>
+                <div class="space-y-3">
                     <div class="flex items-start">
-                        <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded mt-0.5 shrink-0 mr-2">宜</span>
-                        <div class="flex flex-wrap gap-1" id="almanac-yi">--</div>
+                        <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded shrink-0 mr-2 mt-0.5">
+                            宜
+                        </span>
+                        <div class="flex flex-wrap gap-1.5" id="almanac-yi">--</div>
                     </div>
                     <div class="flex items-start">
-                        <span class="bg-rose-100 text-rose-700 text-xs font-bold px-2 py-0.5 rounded mt-0.5 shrink-0 mr-2">忌</span>
-                        <div class="flex flex-wrap gap-1" id="almanac-ji">--</div>
+                        <span class="bg-rose-100 text-rose-700 text-xs font-bold px-2 py-1 rounded shrink-0 mr-2 mt-0.5">
+                            忌
+                        </span>
+                        <div class="flex flex-wrap gap-1.5" id="almanac-ji">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 易经值日卦 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                <h3 class="font-bold text-slate-800 mb-3 flex items-center">
+                    <span class="mr-2">☯️</span> 易经值日卦
+                </h3>
+                <div class="bg-slate-50 rounded-xl p-4 flex gap-4 items-center">
+                    <div id="gua-lines" class="w-10 flex flex-col-reverse gap-[2px]"></div>
+                    <div>
+                        <div class="font-bold text-lg text-slate-800" id="gua-name">--</div>
+                        <div class="text-xs text-slate-500 leading-relaxed mt-1" id="gua-desc">--</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="view-ziwei" class="hidden fade-in bg-white rounded-2xl shadow-lg border border-slate-100 p-5">
-            <div class="text-center mb-5">
-                <h2 class="text-lg font-bold text-slate-800">🔯 紫微流月排盘</h2>
-                <p class="text-xs text-slate-400 mt-1">本地离线版 · 预测未来三个月运势</p>
+        <!-- 紫微流月视图 -->
+        <div id="view-ziwei" class="hidden fade-in space-y-4">
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-center">
+                <p class="text-indigo-800 font-bold text-sm">
+                    🔮 未来三个月流月运势预测
+                </p>
+                <p class="text-[11px] text-indigo-500 mt-1">
+                    点击星曜可查看简要含义
+                </p>
             </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1.5">出生日期 (阳历)</label>
-                    <div class="flex space-x-2">
-                        <select id="selYear" class="w-full border border-slate-300 rounded-lg p-2 text-sm h-10 outline-none focus:border-indigo-500"></select>
-                        <select id="selMonth" class="w-full border border-slate-300 rounded-lg p-2 text-sm h-10 outline-none focus:border-indigo-500"></select>
-                        <select id="selDay" class="w-full border border-slate-300 rounded-lg p-2 text-sm h-10 outline-none focus:border-indigo-500"></select>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1.5">时间</label>
-                        <input type="time" id="birthTime" value="12:00" class="w-full border border-slate-300 rounded-lg p-2 text-sm h-10 outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1.5">性别</label>
-                        <select id="gender" class="w-full border border-slate-300 rounded-lg p-2 text-sm h-10 outline-none focus:border-indigo-500">
-                            <option value="女">女</option>
-                            <option value="男">男</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1.5">出生地</label>
-                    <input type="text" id="location" placeholder="如: 海南海口" class="w-full border border-slate-300 rounded-lg p-2 text-sm h-10 outline-none focus:border-indigo-500">
-                </div>
-                <button onclick="calculateZiwei()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-md text-sm">
-                    🚀 开始排盘
-                </button>
-            </div>
-            <div id="ziwei-result" class="mt-6 hidden space-y-4"></div>
+            <div id="ziwei-result" class="space-y-4"></div>
         </div>
-        
-        <div id="explainModal" class="fixed inset-0 z-50 hidden flex items-center justify-center px-4">
-            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs p-6 relative z-10">
-                <h3 id="modalTitle" class="text-lg font-bold text-slate-800 mb-2"></h3>
-                <p id="modalDesc" class="text-sm text-slate-600 leading-relaxed mb-4"></p>
-                <button onclick="closeModal()" class="w-full bg-slate-100 text-slate-700 py-2 rounded-lg text-sm font-bold">关闭</button>
-            </div>
+
+    </div>
+
+    <!-- 星曜解释弹窗 -->
+    <div id="explainModal"
+         class="fixed inset-0 z-50 hidden flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+             onclick="closeModal()"></div>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs p-6 relative z-10 transform transition-all scale-95">
+            <h3 id="modalTitle" class="text-lg font-bold text-slate-800 mb-2"></h3>
+            <p id="modalDesc" class="text-sm text-slate-600 leading-relaxed mb-4"></p>
+            <button onclick="closeModal()"
+                    class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-sm font-bold">
+                关闭
+            </button>
         </div>
     </div>
 
     <script>
-        // ================= 界面切换 =================
-        function switchTab(tab) {
-            const vDaily = document.getElementById('view-daily');
-            const vZiwei = document.getElementById('view-ziwei');
-            const tDaily = document.getElementById('tab-daily');
-            const tZiwei = document.getElementById('tab-ziwei');
-            if (tab === 'daily') {
-                vDaily.classList.remove('hidden'); vZiwei.classList.add('hidden');
-                tDaily.className = "flex-1 py-2.5 rounded-xl text-sm transition-all tab-active";
-                tZiwei.className = "flex-1 py-2.5 rounded-xl text-sm transition-all tab-inactive";
-            } else {
-                vDaily.classList.add('hidden'); vZiwei.classList.remove('hidden');
-                tDaily.className = "flex-1 py-2.5 rounded-xl text-sm transition-all tab-inactive";
-                tZiwei.className = "flex-1 py-2.5 rounded-xl text-sm transition-all tab-active";
+        // ================= 全局配置 =================
+        const CITY_LONGITUDES = {
+            '北京':116.40,'上海':121.47,'广州':113.26,'深圳':114.05,
+            '海口':110.32,'周口':114.65,'郑州':113.62,'武汉':114.31,'成都':104.06
+        };
+
+        // 幸运配置
+        const LUCKY_CONFIG = {
+            '木': { color: 'bg-emerald-500', text: '青 / 绿', icon: '🪴', item: '植物、书本' },
+            '火': { color: 'bg-rose-500',   text: '红 / 紫', icon: '🔥', item: '电子产品、灯' },
+            '土': { color: 'bg-amber-500',  text: '黄 / 褐', icon: '🧱', item: '陶瓷、玉石' },
+            '金': { color: 'bg-slate-400',  text: '白 / 金', icon: '🪙', item: '金属饰品' },
+            '水': { color: 'bg-blue-500',   text: '黑 / 蓝', icon: '💧', item: '饮料、水晶' }
+        };
+
+        // 易经卦象字典 (简版)
+        const GUA_DICT = {
+            '111111': {n:'乾为天',d:'大吉。刚健中正，宜进取。'},
+            '000000': {n:'坤为地',d:'吉。厚德载物，宜包容合作。'},
+            '100010': {n:'水雷屯',d:'始生之难。宜积攒实力，勿轻动。'},
+            '010001': {n:'山水蒙',d:'启蒙之时。宜请教长辈。'},
+            '111010': {n:'水天需',d:'等待时机。前途光明但有阻碍。'},
+            '010111': {n:'天水讼',d:'争执。凡事易起口舌，宜退让。'},
+            '000010': {n:'水地比',d:'亲密。利于合作、交友，人缘佳。'},
+            '010000': {n:'地水师',d:'兴师。利于团队管理，需纪律。'}
+        };
+
+        // 紫微星曜解释
+        const STAR_WIKI = {
+            '化禄':'【财富】顺遂，收获。',
+            '化权':'【权力】行动力，固执。',
+            '化科':'【名声】考运，贵人。',
+            '化忌':'【阻碍】纠结，亏损。',
+            '禄存':'【真财】积蓄，稳重。',
+            '天马':'【变动】奔波，出差。',
+            '左辅':'【助力】朋友帮。',
+            '右弼':'【助力】异性帮。',
+            '天魁':'【提拔】长辈机会。',
+            '天钺':'【机遇】暗中帮助。',
+            '擎羊':'【刑伤】冲突，开拓。',
+            '陀罗':'【拖延】原地打转。'
+        };
+
+        // ================= 初始化 =================
+        window.onload = function() {
+            initDateSelectors();
+            setTimeout(calculateAll, 500); // 自动执行一次
+        };
+
+        function initDateSelectors() {
+            const y = document.getElementById('selYear');
+            const m = document.getElementById('selMonth');
+            const d = document.getElementById('selDay');
+            const currentYear = new Date().getFullYear();
+
+            for (let i = currentYear; i >= 1930; i--) {
+                y.add(new Option(i + '年', i));
             }
+            y.value = 1990;
+
+            for (let i = 1; i <= 12; i++) {
+                m.add(new Option(i + '月', i));
+            }
+
+            const upd = () => {
+                const days = new Date(y.value, m.value, 0).getDate();
+                d.innerHTML = '';
+                for (let i = 1; i <= days; i++) {
+                    d.add(new Option(i + '日', i));
+                }
+            };
+            y.onchange = upd;
+            m.onchange = upd;
+            upd();
         }
 
-        // ================= 每日玄学 =================
-        const GUA_DICT = {
-            '111111': { name: '乾为天', desc: '元亨利贞。刚健中正，自强不息。是大吉之卦，宜进取。' },
-            '000000': { name: '坤为地', desc: '厚德载物。柔顺包容，以静制动。利于合作，不宜冒进。' },
-            '100010': { name: '水雷屯', desc: '万物始生。初期艰难，如同幼苗破土。宜积攒实力。' },
-            '010001': { name: '山水蒙', desc: '启蒙之时。迷雾重重。宜请教长辈，切忌自作聪明。' },
-            '111010': { name: '水天需', desc: '等待时机。饮食宴乐，耐心等待。前途光明但有阻碍。' },
-            '010111': { name: '天水讼', desc: '争执不下。凡事易起口舌，官非。宜退让，以和为贵。' },
-            '010000': { name: '地水师', desc: '兴师动众。利于团队领导，行事需有纪律。' },
-            '000010': { name: '水地比', desc: '亲密比辅。朋友互助。利于合作、建交，人缘极佳。' }
-        };
+        function switchTab(tab) {
+            document.getElementById('view-daily').classList.toggle('hidden', tab !== 'daily');
+            document.getElementById('view-ziwei').classList.toggle('hidden', tab !== 'ziwei');
 
-        const FIVE_ELEMENTS_CONFIG = {
-            '木': { color: 'bg-emerald-500', text: '青/绿', items: '📚 书籍、🪴 植物、🧣 棉麻', icon: '🪴' },
-            '火': { color: 'bg-rose-500', text: '红/紫', items: '🔦 电子、🏮 灯具、🕶️ 眼镜', icon: '🔥' },
-            '土': { color: 'bg-amber-500', text: '黄/咖', items: '🪨 玉石、🏺 陶瓷、🍯 甜食', icon: '📿' },
-            '金': { color: 'bg-slate-400', text: '白/金', items: '⌚ 手表、💍 饰品、🪙 硬币', icon: '⌚' },
-            '水': { color: 'bg-blue-500', text: '黑/蓝', items: '💧 水杯、🐚 贝壳、🧊 水晶', icon: '💧' }
-        };
+            document.getElementById('btn-daily').className =
+                tab === 'daily'
+                    ? 'tab-btn active flex-1 py-3 cursor-pointer text-sm'
+                    : 'tab-btn flex-1 py-3 cursor-pointer text-sm';
 
-        function renderDaily() {
-            // 检查库是否加载
-            if (typeof Lunar === 'undefined') { setTimeout(renderDaily, 200); return; }
+            document.getElementById('btn-ziwei').className =
+                tab === 'ziwei'
+                    ? 'tab-btn active flex-1 py-3 cursor-pointer text-sm'
+                    : 'tab-btn flex-1 py-3 cursor-pointer text-sm';
+        }
 
+        // ================= 核心计算逻辑 =================
+        function calculateAll() {
+            if (typeof Lunar === 'undefined' || typeof iztro === 'undefined') {
+                alert("核心库正在加载，请稍后刷新页面重试。");
+                return;
+            }
+
+            const by = document.getElementById('selYear').value;
+            const bm = document.getElementById('selMonth').value;
+            const bd = document.getElementById('selDay').value;
+            const bh = document.getElementById('birthTime').value;
+            const gender = document.getElementById('gender').value;
+
+            const [hour, minute] = bh.split(':').map(Number);
+
+            const solarBirth = Solar.fromYmdHms(
+                parseInt(by), parseInt(bm), parseInt(bd),
+                hour, minute, 0
+            );
+            const lunarBirth = solarBirth.getLunar();
+            const dayGan = lunarBirth.getDayGan(); // 日干
+
+            renderDailyFortune(dayGan);
+            renderZiweiChart(solarBirth, gender);
+        }
+
+        function renderDailyFortune(userDayGan) {
             const today = new Date();
-            const lunar = Lunar.fromDate(today);
-            
-            document.getElementById('dailyDate').innerText = `${today.getMonth()+1}月${today.getDate()}日`;
-            document.getElementById('dailyLunar').innerText = `农历${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`;
-            document.getElementById('dailyGanzhi').innerText = `${lunar.getYearInGanZhi()}年 ${lunar.getDayInGanZhi()}日`;
-            document.getElementById('dailyNayin').innerText = lunar.getDayNaYin();
+            const lunarToday = Lunar.fromDate(today);
 
-            const yi = lunar.getDayYi(); const ji = lunar.getDayJi();
-            document.getElementById('almanac-yi').innerHTML = yi.slice(0,5).map(t=>`<span class="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${t}</span>`).join('');
-            document.getElementById('almanac-ji').innerHTML = ji.slice(0,5).map(t=>`<span class="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${t}</span>`).join('');
+            document.getElementById('dailyDate').innerText =
+                `${today.getMonth() + 1}月${today.getDate()}日`;
+            document.getElementById('dailyLunar').innerText =
+                `农历${lunarToday.getMonthInChinese()}月${lunarToday.getDayInChinese()}`;
+            document.getElementById('dailyGanzhi').innerText =
+                `${lunarToday.getYearInGanZhi()}年 ${lunarToday.getDayInGanZhi()}日`;
+            document.getElementById('dailyNayin').innerText = lunarToday.getDayNaYin();
 
-            const dayGan = lunar.getDayGan();
-            let element = '';
-            if (['甲','乙'].includes(dayGan)) element = '木';
-            else if (['丙','丁'].includes(dayGan)) element = '火';
-            else if (['戊','己'].includes(dayGan)) element = '土';
-            else if (['庚','辛'].includes(dayGan)) element = '金';
-            else element = '水';
+            // 日主五行
+            let userElement = '';
+            if (['甲','乙'].includes(userDayGan)) userElement = '木';
+            else if (['丙','丁'].includes(userDayGan)) userElement = '火';
+            else if (['戊','己'].includes(userDayGan)) userElement = '土';
+            else if (['庚','辛'].includes(userDayGan)) userElement = '金';
+            else userElement = '水';
 
-            const config = FIVE_ELEMENTS_CONFIG[element];
-            document.getElementById('lucky-color-dot').className = `w-8 h-8 rounded-full shadow-inner border-2 border-white ring-1 ring-slate-100 ${config.color}`;
-            document.getElementById('lucky-color-text').innerText = config.text;
-            document.getElementById('lucky-item-icon').innerText = config.icon;
-            document.getElementById('lucky-item-text').innerText = config.items.split('、')[0];
+            document.getElementById('userDayMaster').innerText =
+                `日主：${userDayGan}${userElement}`;
 
-            const y = today.getFullYear(); const m = today.getMonth()+1; const d = today.getDate();
+            const luckyKey = userElement;
+            const config = LUCKY_CONFIG[luckyKey];
+
+            document.getElementById('luckyColorDot').className =
+                `w-12 h-12 rounded-full shadow-inner border-4 border-white ring-1 ring-slate-200 mb-1 ${config.color}`;
+            document.getElementById('luckyColorText').innerText = config.text;
+            document.getElementById('luckyItemIcon').innerText = config.icon;
+            document.getElementById('luckyItemText').innerText = config.item;
+
+            const yi = lunarToday.getDayYi();
+            const ji = lunarToday.getDayJi();
+            document.getElementById('almanac-yi').innerHTML =
+                yi.slice(0, 6).map(t =>
+                    `<span class="text-xs bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded">${t}</span>`
+                ).join('');
+            document.getElementById('almanac-ji').innerHTML =
+                ji.slice(0, 6).map(t =>
+                    `<span class="text-xs bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded">${t}</span>`
+                ).join('');
+
+            const y = today.getFullYear();
+            const m = today.getMonth() + 1;
+            const d = today.getDate();
             const sum = y + m + d;
-            let upper = sum % 8; if(upper===0) upper=8;
-            let lower = (sum + d) % 8; if(lower===0) lower=8;
+            let upper = sum % 8 || 8;
+            let lower = (sum + d) % 8 || 8;
             renderGua(upper, lower);
         }
 
         function renderGua(upper, lower) {
-            const BAGUA_BIN = [null, '111', '011', '101', '001', '110', '010', '100', '000']; 
-            const BAGUA_NAME = [null, '乾', '兑', '离', '震', '巽', '坎', '艮', '坤'];
-            const binCode = BAGUA_BIN[upper] + BAGUA_BIN[lower]; 
-            const guaName = GUA_DICT[binCode] ? GUA_DICT[binCode].name : `${BAGUA_NAME[upper]}为上${BAGUA_NAME[lower]}为下`;
-            const guaDesc = GUA_DICT[binCode] ? GUA_DICT[binCode].desc : '今日运势平稳，顺势而为，保持内心平静即可。易经启示：变动之中寻找平衡。';
+            const BAGUA_BIN  = [null, '111','011','101','001','110','010','100','000'];
+            const BAGUA_NAME = [null, '乾','兑','离','震','巽','坎','艮','坤'];
 
-            document.getElementById('gua-name').innerText = guaName;
-            document.getElementById('gua-desc').innerText = guaDesc;
+            const bin  = BAGUA_BIN[upper] + BAGUA_BIN[lower];
+            const info = GUA_DICT[bin] || {
+                n: `${BAGUA_NAME[upper]}上${BAGUA_NAME[lower]}下`,
+                d: '平稳之象，顺势而为。'
+            };
+
+            document.getElementById('gua-name').innerText = info.n;
+            document.getElementById('gua-desc').innerText = info.d;
+
             const container = document.getElementById('gua-lines');
             container.innerHTML = '';
-            for (let char of binCode) {
-                const div = document.createElement('div');
-                div.className = "gua-line";
-                if (char === '1') div.innerHTML = '<div class="gua-yang"></div>';
-                else div.innerHTML = '<div class="gua-yin"><span></span><span></span></div>';
-                container.appendChild(div);
+            for (let char of bin) {
+                const line = document.createElement('div');
+                line.style.height = '4px';
+                line.style.borderRadius = '2px';
+                line.style.width = '100%';
+                if (char === '1') {
+                    line.style.background = '#334155';
+                } else {
+                    line.innerHTML =
+                        '<div style="display:flex;justify-content:space-between;width:100%">' +
+                        '<span style="width:42%;height:4px;background:#334155;border-radius:2px"></span>' +
+                        '<span style="width:42%;height:4px;background:#334155;border-radius:2px"></span>' +
+                        '</div>';
+                }
+                container.appendChild(line);
             }
         }
 
-        // ================= 紫微斗数 =================
-        const CITY_LONGITUDES = {'北京':116.40,'上海':121.47,'广州':113.26,'深圳':114.05,'海口':110.32,'周口':114.65,'郑州':113.62,'武汉':114.31,'成都':104.06};
-        const STAR_WIKI = {
-            '化禄':'【财富/情缘】顺遂，像秋天收获。','化权':'【权力/控制】掌权，有行动力但固执。','化科':'【名声/贵人】考运好，有人赏识。','化忌':'【阻碍/纠结】不顺，口舌，想不开。',
-            '禄存':'【存款】实打实的积蓄。','天马':'【奔波】出差旅游，越动越有钱。','左辅':'【平辈贵人】朋友帮忙。','右弼':'【异性贵人】额外助力。','天魁':'【长辈提拔】直接机会。','天钺':'【暗中相助】间接机遇。',
-            '擎羊':'【刑伤】冲突，手术，也指开拓。','陀罗':'【拖延】纠结，原地打转。','火星':'【爆发】突发，横财或发火。','铃星':'【暗亏】生闷气，算计。'
-        };
-
-        (function() {
-            const ySel = document.getElementById('selYear'), mSel = document.getElementById('selMonth'), dSel = document.getElementById('selDay');
-            for(let i=new Date().getFullYear(); i>=1930; i--) ySel.add(new Option(i+'年', i)); ySel.value=1990;
-            for(let i=1; i<=12; i++) mSel.add(new Option(i+'月', i));
-            const updateDay = () => {
-                const dim = new Date(ySel.value, mSel.value, 0).getDate(); dSel.innerHTML='';
-                for(let i=1; i<=dim; i++) dSel.add(new Option(i+'日', i));
-            };
-            ySel.onchange = updateDay; mSel.onchange = updateDay; updateDay();
-            renderDaily();
-        })();
-
-        async function calculateZiwei() {
-            const btn = document.querySelector('button[onclick="calculateZiwei()"]');
-            // 核心检测
-            if (typeof iztro === 'undefined') { alert("核心排盘库未加载！\n请检查 iztro.min.js 是否在同一目录下。"); return; }
-            
-            const dateStr = `${document.getElementById('selYear').value}-${document.getElementById('selMonth').value.padStart(2,'0')}-${document.getElementById('selDay').value.padStart(2,'0')}`;
-            const timeStr = document.getElementById('birthTime').value;
-            const gender = document.getElementById('gender').value;
+        function renderZiweiChart(solar, gender) {
             const location = document.getElementById('location').value || '';
+            let long = 120;
+            for (let k in CITY_LONGITUDES) {
+                if (location.includes(k)) {
+                    long = CITY_LONGITUDES[k];
+                    break;
+                }
+            }
+            const offset = (long - 120) * 4;
 
-            btn.innerText = "⏳ 推演中..."; btn.disabled = true;
+            const dateStr = solar.toYmd();
+            const fixDate = new Date(
+                solar.getYear(), solar.getMonth() - 1, solar.getDay(),
+                solar.getHour(), solar.getMinute()
+            );
+            fixDate.setMinutes(fixDate.getMinutes() + offset);
 
-            setTimeout(() => {
-                try {
-                    let long = 120; 
-                    for(let k in CITY_LONGITUDES) if(location.includes(k)) long = CITY_LONGITUDES[k];
-                    const offset = (long - 120) * 4;
-                    const dt = new Date(`${dateStr}T${timeStr}:00`); dt.setMinutes(dt.getMinutes()+offset);
-                    let idx = Math.floor((dt.getHours()+1)/2)%12;
+            const hourIndex = Math.floor((fixDate.getHours() + 1) / 2) % 12;
 
-                    const astrolabe = iztro.astro.bySolar(dateStr, idx, gender, true, 'zh-CN');
-                    
-                    const container = document.getElementById('ziwei-result');
-                    container.innerHTML = ''; container.classList.remove('hidden');
-                    const today = new Date();
-                    
-                    for(let i=0; i<3; i++) {
-                        let target = new Date(today.getFullYear(), today.getMonth()+i, 15);
-                        const tStr = `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}-15 12:00:00`;
-                        const scope = astrolabe.horoscope(tStr);
-                        if(scope) {
-                            const pName = astrolabe.palace(scope.monthly.index).name;
-                            let stars = [];
-                            [scope.monthly.index, (scope.monthly.index+4)%12, (scope.monthly.index+8)%12].forEach(idx => {
-                                astrolabe.palace(idx).majorStars.forEach(s=>stars.push(s));
-                                astrolabe.palace(idx).minorStars.forEach(s=>stars.push(s));
-                            });
-                            
-                            let good = stars.filter(s=>['化禄','化权','化科','禄存','天马','左辅','右弼','天魁','天钺'].some(k=>s.name.includes(k))).slice(0,3);
-                            let bad = stars.filter(s=>['化忌','擎羊','陀罗','火星','铃星','地空','地劫'].some(k=>s.name.includes(k))).slice(0,3);
-                            
-                            let html = `
-                                <div class="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-                                    <div class="flex justify-between border-b border-slate-50 pb-2 mb-2">
-                                        <div class="font-bold text-slate-800">${target.getFullYear()}年${target.getMonth()+1}月</div>
-                                        <div class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded">流月在${pName}</div>
+            try {
+                const astrolabe = iztro.astro.bySolar(dateStr, hourIndex, gender, true, 'zh-CN');
+                const container = document.getElementById('ziwei-result');
+                container.innerHTML = '';
+
+                const today = new Date();
+                for (let i = 0; i < 3; i++) {
+                    let tDate = new Date(today.getFullYear(), today.getMonth() + i, 15);
+                    let tStr = `${tDate.getFullYear()}-${String(tDate.getMonth() + 1).padStart(2,'0')}-15 12:00:00`;
+
+                    const scope = astrolabe.horoscope(tStr);
+                    if (!scope) continue;
+
+                    const palaceIdx  = scope.monthly.index;
+                    const palaceName = astrolabe.palace(palaceIdx).name;
+
+                    let stars = [];
+                    [palaceIdx, (palaceIdx + 4) % 12, (palaceIdx + 8) % 12].forEach(idx => {
+                        astrolabe.palace(idx).majorStars.forEach(s => stars.push(s.name));
+                        astrolabe.palace(idx).minorStars.forEach(s => stars.push(s.name));
+                    });
+
+                    const good = stars.filter(n =>
+                        ['化禄','化权','化科','禄存','天马','左辅','右弼','天魁','天钺'].some(k => n.includes(k))
+                    ).slice(0, 6);
+
+                    const bad = stars.filter(n =>
+                        ['化忌','擎羊','陀罗','火星','铃星','地空','地劫'].some(k => n.includes(k))
+                    ).slice(0, 6);
+
+                    const html = `
+                        <div class="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+                            <div class="flex justify-between border-b border-slate-50 pb-2 mb-2">
+                                <div class="font-bold text-slate-700">
+                                    ${tDate.getFullYear()}年${tDate.getMonth() + 1}月
+                                </div>
+                                <div class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded">
+                                    流月在 ${palaceName}
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-start">
+                                    <span class="text-[10px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded mr-2 shrink-0 mt-0.5">
+                                        吉
+                                    </span>
+                                    <div class="flex flex-wrap gap-1">
+                                        ${
+                                            good.length
+                                                ? good.map(s =>
+                                                    `<span class="text-xs text-slate-600 border border-slate-100 px-1 rounded cursor-pointer" onclick="showExplain('${s}')">${s}</span>`
+                                                  ).join('')
+                                                : '<span class="text-xs text-slate-300">无明显吉星</span>'
+                                        }
                                     </div>
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <div class="bg-emerald-50 p-2 rounded">
-                                            <div class="text-[10px] text-emerald-600 font-bold mb-1">吉星高照</div>
-                                            <div class="flex flex-wrap gap-1">${good.map(s=>`<span class="text-xs bg-white text-emerald-700 px-1 rounded shadow-sm cursor-pointer" onclick="showExplain('${s.name}')">${s.name}</span>`).join('')||'-'}</div>
-                                        </div>
-                                        <div class="bg-rose-50 p-2 rounded">
-                                            <div class="text-[10px] text-rose-600 font-bold mb-1">需防范</div>
-                                            <div class="flex flex-wrap gap-1">${bad.map(s=>`<span class="text-xs bg-white text-rose-700 px-1 rounded shadow-sm cursor-pointer" onclick="showExplain('${s.name}')">${s.name}</span>`).join('')||'-'}</div>
-                                        </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <span class="text-[10px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded mr-2 shrink-0 mt-0.5">
+                                        凶
+                                    </span>
+                                    <div class="flex flex-wrap gap-1">
+                                        ${
+                                            bad.length
+                                                ? bad.map(s =>
+                                                    `<span class="text-xs text-slate-600 border border-slate-100 px-1 rounded cursor-pointer" onclick="showExplain('${s}')">${s}</span>`
+                                                  ).join('')
+                                                : '<span class="text-xs text-slate-300">无明显煞星</span>'
+                                        }
                                     </div>
-                                </div>`;
-                            container.innerHTML += html;
-                        }
-                    }
-                } catch(e) { alert("排盘出错: "+e.message); }
-                finally { btn.innerText = "🚀 开始排盘"; btn.disabled = false; }
-            }, 200);
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('ziwei-result').innerHTML =
+                    '<div class="text-center text-red-500 text-sm">排盘出错，请检查控制台。</div>';
+            }
         }
 
         function showExplain(name) {
-            let key = Object.keys(STAR_WIKI).find(k => name.includes(k));
-            if(!key) return;
-            document.getElementById('modalTitle').innerText = key;
-            document.getElementById('modalDesc').innerText = STAR_WIKI[key];
-            document.getElementById('explainModal').classList.remove('hidden');
+            const key = Object.keys(STAR_WIKI).find(k => name.includes(k));
+            if (key) {
+                document.getElementById('modalTitle').innerText = key;
+                document.getElementById('modalDesc').innerText  = STAR_WIKI[key];
+                document.getElementById('explainModal').classList.remove('hidden');
+            }
         }
-        function closeModal() { document.getElementById('explainModal').classList.add('hidden'); }
+
+        function closeModal() {
+            document.getElementById('explainModal').classList.add('hidden');
+        }
     </script>
 </body>
 </html>
